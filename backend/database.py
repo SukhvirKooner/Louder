@@ -17,27 +17,15 @@ class Database:
         self.email_submissions_collection = self.db.email_submissions
 
     async def get_all_events(self) -> List[Event]:
-        """
-        Fetches every document in the `events` collection and converts each
-        to a Pydantic Event. The Event model should have fields like:
-          - id: Optional[str]
-          - title: str
-          - description: str
-          - date: Optional[datetime]
-          - venue: str
-          - image_url: str
-          - ticket_url: str
-          - source_url: str
-        """
         events: List[Event] = []
         cursor = self.events_collection.find()
         async for document in cursor:
-            # Convert MongoDB's ObjectId to a string for id
             events.append(Event(
                 id=str(document["_id"]),
+                source_id=document.get("source_id", ""),
                 title=document.get("title", ""),
                 description=document.get("description", ""),
-                date=document.get("date"),          # could be None or a datetime
+                date=document.get("date"),
                 venue=document.get("venue", ""),
                 image_url=document.get("image_url", ""),
                 ticket_url=document.get("ticket_url", ""),
@@ -47,28 +35,31 @@ class Database:
 
     async def update_events(self, events: List[Event]):
         """
-        Clears the existing events collection, then inserts the provided list.
-        We explicitly exclude the 'id' key so MongoDB can generate a fresh _id:
+        Upsert each event based on (source_url, source_id). If an event
+        already exists for that source_id at that URL, skip. Otherwise, insert.
         """
-        # 1) Remove all existing documents
-        await self.events_collection.delete_many({})
-
-        # 2) Insert each event without an explicit _id
         for event in events:
-            # Convert the Pydantic Event into a dict,
-            # excluding any fields whose value is None, and excluding 'id'
+            # Convert Event to dict, dropping None fields and no 'id'
             event_data = event.dict(exclude_none=True, exclude={"id"})
 
-            # Now just insert the dict; MongoDB will assign its own ObjectId
+            filter_query = {
+                "source_url": event.source_url,
+                "source_id": event.source_id
+            }
+
+            update_doc = {"$setOnInsert": event_data}
+
             try:
-                await self.events_collection.insert_one(event_data)
+                # This will insert a new document if no existing match is found.
+                await self.events_collection.update_one(
+                    filter_query,
+                    update_doc,
+                    upsert=True
+                )
             except Exception as e:
-                print(f"Error inserting event into DB: {e}")
+                print(f"[Database.update_events] Error upserting event {event.source_id}: {e}")
 
     async def save_email_submission(self, email: str, event_id: str):
-        """
-        Stores each email submission with the event_id they clicked.
-        """
         submission = {
             "email": email,
             "event_id": event_id,
@@ -77,4 +68,7 @@ class Database:
         try:
             await self.email_submissions_collection.insert_one(submission)
         except Exception as e:
-            print(f"Error saving email submission: {e}")
+            print(f"[Database.save_email_submission] Error: {e}")
+
+    def close(self):
+        self.client.close()

@@ -20,6 +20,7 @@ class PyObjectId(ObjectId):
 
 class Event(BaseModel):
     id: Optional[str] = Field(alias="_id", default=None)
+    source_id: str
     title: str
     description: str
     date: Optional[datetime] 
