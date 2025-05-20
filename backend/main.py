@@ -19,6 +19,9 @@ load_dotenv()
 
 app = FastAPI(title="Louder")
 
+# Mount static files (React build output)
+app.mount("/static", StaticFiles(directory="../frontend/build/static"), name="static")
+
 # CORS middleware (adjust origins as needed)
 app.add_middleware(
     CORSMiddleware,
