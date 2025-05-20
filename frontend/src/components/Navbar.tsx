@@ -108,18 +108,18 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white shadow-sm">
+      <header className="sticky top-0 z-50 bg-black shadow-sm">
         <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between">
           <div className="flex items-center mb-4 md:mb-0">
-            <Link to="/" className="text-3xl md:text-4xl font-bold font-poppins text-louder-purple">
-              <span className="text-louder-purple-dark">LOUDER</span>
+            <Link to="/" className="text-3xl md:text-4xl font-bold font-poppins text-white">
+              <span className="text-white">LOUDER</span>
             </Link>
-            <span className="hidden md:inline-block ml-2 text-sm text-gray-500">SYDNEY</span>
+            <span className="hidden md:inline-block ml-2 text-sm text-gray-400">SYDNEY</span>
           </div>
           
           <div className="w-full md:w-1/2 lg:w-1/3 mb-4 md:mb-0">
             <div className="relative w-full">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                 <Search size={18} />
               </div>
               <input
@@ -127,7 +127,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
                 placeholder="Search events or venues..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-louder-purple focus:border-transparent transition-all duration-200"
+                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-700 bg-black text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200"
               />
             </div>
           </div>
@@ -136,7 +136,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
             {!hasSubscribed && (
               <button
                 onClick={onShowEmailModal}
-                className="bg-louder-purple hover:bg-louder-purple-dark text-white font-semibold py-3 px-10 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+                className="bg-white hover:bg-gray-200 text-black font-semibold py-3 px-10 rounded-full focus:outline-none focus:ring-2 focus:ring-white transition"
               >
                 Subscribe
               </button>
@@ -147,13 +147,13 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
 
       {/* Email Modal */}
       {showEmailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
+          <div className="bg-black rounded-lg p-6 max-w-md w-full text-white">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Subscribe to Events</h2>
               <button
                 onClick={onCloseEmailModal}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-200"
               >
                 ✕
               </button>
@@ -165,7 +165,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border-gray-700 bg-black text-white shadow-sm focus:border-white focus:ring-white"
                   placeholder="Enter your email"
                   required
                 />
@@ -173,14 +173,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full bg-louder-purple text-white py-2 px-4 rounded-md hover:bg-louder-purple-dark transition-colors disabled:bg-blue-400"
+                className="w-full bg-white text-black py-2 px-4 rounded-md hover:bg-gray-200 transition-colors disabled:bg-gray-400"
               >
                 {status === 'loading' ? 'Subscribing...' : 'Subscribe & Continue'}
               </button>
               {message && (
                 <p
                   className={`text-center ${
-                    status === 'success' ? 'text-green-600' : 'text-red-600'
+                    status === 'success' ? 'text-green-400' : 'text-red-400'
                   }`}
                 >
                   {message}

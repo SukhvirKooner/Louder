@@ -41,23 +41,23 @@ const EventCard: React.FC<EventCardProps> = ({ event, onShowEmailModalRequest })
       </Link>
       <div className="p-4">
         <Link to={`/`} className="block">
-          <h3 className="text-xl font-semibold mb-2 hover:text-louder-purple transition-colors">
+          <h3 className="text-xl font-semibold mb-2 text-black">
             {event.title}
           </h3>
         </Link>
-        <div className="space-y-2 text-gray-600 text-sm mb-4">
+        <div className="space-y-2 text-gray-700 text-sm mb-4">
           <div className="flex items-center">
-            <Calendar className="w-4 h-4 mr-2" />
+            <Calendar className="w-4 h-4 mr-2 text-black" />
             <span>{event.date}</span>
           </div>
           <div className="flex items-center">
-            <MapPin className="w-4 h-4 mr-2" />
+            <MapPin className="w-4 h-4 mr-2 text-black" />
             <span>{event.venue}</span>
           </div>
         </div>
         <button
           onClick={handleGetTickets}
-          className="w-full bg-louder-purple hover:bg-louder-purple-dark text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+          className="w-full bg-black text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 hover:bg-gray-900"
         >
           Get Tickets
         </button>

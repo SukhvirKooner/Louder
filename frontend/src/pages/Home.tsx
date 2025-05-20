@@ -82,15 +82,15 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   if (error) return <div className="text-center py-8 text-red-600">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-louder-purple to-louder-purple-dark text-white py-20">
+      <section className="bg-white text-black py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
               Discover Sydney's Live Scene
             </h1>
-            <p className="text-lg md:text-xl text-gray-100 mb-8">
+            <p className="text-lg md:text-xl text-gray-700 mb-8">
               Find and book tickets for the best events happening in Sydney
             </p>
           </div>
@@ -105,7 +105,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
           ))}
         </div>
         {filteredEvents.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-400">
             No events found matching your search.
           </div>
         )}
@@ -117,13 +117,13 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
               disabled={currentPage === 1}
               className={`px-6 py-2 rounded-full font-semibold transition-colors duration-200 ${
                 currentPage === 1
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                  : 'bg-white text-black hover:bg-gray-200'
               }`}
             >
               Previous
             </button>
-            <span className="text-gray-700">
+            <span className="text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <button
@@ -131,8 +131,8 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
               disabled={currentPage === totalPages}
               className={`px-6 py-2 rounded-full font-semibold transition-colors duration-200 ${
                 currentPage === totalPages
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                  : 'bg-white text-black hover:bg-gray-200'
               }`}
             >
               Next
