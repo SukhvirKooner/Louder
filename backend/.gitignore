@@ -35,4 +35,5 @@ ENV/
 
 # Scraped Data
 scraped_events.jsonl
-www_eventbrite_com_soup.html
+www_eventbrite_com_page_1.html
+whatson_cityofsydney_nsw_gov_au_page_1.html

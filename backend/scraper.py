@@ -121,7 +121,6 @@ class EventScraper:
                         print(f"Error parsing Eventbrite card on page {page_number}: {e}")
             # Move to next page
             page_number += 1
-            break
 
         return events
 
