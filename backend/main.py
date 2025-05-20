@@ -7,11 +7,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
 
 from dotenv import load_dotenv
 
 from scraper import EventScraper
-from database import Database
 from models import Event as EventModel  # Pydantic model from models.py
 
 load_dotenv()
@@ -28,8 +29,11 @@ app.add_middleware(
 )
 
 # Initialize database
-db = Database()
-
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+client = AsyncIOMotorClient(MONGODB_URL)
+db = client.event_database
+events_collection = db.events
+email_submissions_collection = db.email_submissions
 
 #
 # Pydantic schema for incoming email submissions.
@@ -40,24 +44,58 @@ class EmailSubmission(BaseModel):
     event_id: str
 
 
-async def periodic_scraping():
+async def cleanup_past_events():
+    """Clean up past events from the database."""
+    try:
+        current_time = datetime.utcnow()
+        result = await events_collection.delete_many({"date": {"$lt": current_time}})
+        print(f"[{datetime.utcnow().isoformat()}] Cleaned up {result.deleted_count} past events")
+    except Exception as e:
+        print(f"[{datetime.utcnow().isoformat()}] Error in cleanup_past_events: {e}")
+
+
+async def update_events(events: List[EventModel]):
+    """Update events in the database."""
+    try:
+        for event in events:
+            # Convert Pydantic model to dict and remove id field
+            event_dict = event.model_dump()
+            if "id" in event_dict:
+                del event_dict["id"]
+            
+            # Use source_id as the unique identifier for upsert
+            await events_collection.update_one(
+                {"source_id": event_dict["source_id"]},
+                {"$set": event_dict},
+                upsert=True
+            )
+    except Exception as e:
+        print(f"[{datetime.utcnow().isoformat()}] Error updating events: {e}")
+        raise e
+
+
+async def periodic_tasks():
     """
     Runs an infinite loop that:
       1) Scrapes events
       2) Upserts them into MongoDB
-      3) Sleeps for SCRAPING_INTERVAL seconds
-    On startup, we kick this off so the first scrape happens immediately.
+      3) Cleans up past events
+      4) Sleeps for SCRAPING_INTERVAL seconds
     """
     interval = int(os.getenv("SCRAPING_INTERVAL", 3600))  # seconds
     while True:
         try:
+            # Scrape new events
             scraper = EventScraper()
             events = await scraper.scrape_events()
-            await db.update_events(events)
+            await update_events(events)
             print(f"[{datetime.utcnow().isoformat()}] Scraped and upserted {len(events)} events.")
+
+            # Clean up past events
+            await cleanup_past_events()
+
         except Exception as e:
-            # Log the error but keep the loop running
-            print(f"[{datetime.utcnow().isoformat()}] Error in periodic_scraping: {e}")
+            print(f"[{datetime.utcnow().isoformat()}] Error in periodic_tasks: {e}")
         finally:
             await asyncio.sleep(interval)
 
@@ -65,22 +103,40 @@ async def periodic_scraping():
 @app.on_event("startup")
 async def startup_event():
     """
-    When the app starts, launch the background scraping task.
+    When the app starts, launch the background tasks.
     """
-    # Start the periodic_scraping task, but do not await it here.
-    asyncio.create_task(periodic_scraping())
+    asyncio.create_task(periodic_tasks())
 
 
-@app.get("/events", response_model=List[EventModel])
+@app.get("/events")
 async def get_events():
-    """
-    Returns all events currently in the database, in the exact Pydantic schema
-    defined in models.py (which includes id, source_id, title, date, etc.).
-    """
     try:
-        return await db.get_all_events()
+        # Get current time in UTC
+        current_time = datetime.utcnow()
+        
+        # Find all events and filter out past events
+        cursor = events_collection.find({"date": {"$gt": current_time}})
+        events = await cursor.to_list(length=None)
+        
+        # Convert ObjectId to string for JSON serialization
+        for event in events:
+            event["id"] = str(event.pop("_id"))
+        
+        return events
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get events: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/events/{event_id}")
+async def get_event(event_id: str):
+    try:
+        event = await events_collection.find_one({"_id": ObjectId(event_id)})
+        if event:
+            event["id"] = str(event.pop("_id"))
+            return event
+        raise HTTPException(status_code=404, detail="Event not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/submit-email")
@@ -90,7 +146,11 @@ async def submit_email(submission: EmailSubmission):
     collection along with a timestamp.
     """
     try:
-        await db.save_email_submission(submission.email, submission.event_id)
+        await email_submissions_collection.insert_one({
+            "email": submission.email,
+            "event_id": submission.event_id,
+            "submitted_at": datetime.utcnow()
+        })
         return {"message": "Email submitted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -104,10 +164,20 @@ async def scrape_now():
     try:
         scraper = EventScraper()
         events = await scraper.scrape_events()
-        await db.update_events(events)
+        await update_events(events)
         return {"message": f"Manually scraped {len(events)} events."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Manual scrape failed: {e}")
+
+
+@app.post("/events/cleanup")
+async def manual_cleanup():
+    """Manually trigger cleanup of past events."""
+    try:
+        await cleanup_past_events()
+        return {"message": "Cleanup completed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
