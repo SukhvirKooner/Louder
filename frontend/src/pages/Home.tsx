@@ -14,9 +14,10 @@ interface Event {
 
 interface HomeProps {
   searchTerm: string;
+  onShowEmailModalRequest: (ticketUrl: string) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ searchTerm }) => {
+const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +81,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm }) => {
       <section className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} onShowEmailModalRequest={onShowEmailModalRequest} />
           ))}
         </div>
         {filteredEvents.length === 0 && (

@@ -4,11 +4,14 @@ import { Search } from 'lucide-react';
 
 interface NavbarProps {
   onSearchChange: (term: string) => void;
+  showEmailModal: boolean;
+  onShowEmailModal: () => void;
+  onCloseEmailModal: () => void;
+  redirectTicketUrl: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
+const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowEmailModal, onCloseEmailModal, redirectTicketUrl }) => {
   const [hasSubscribed, setHasSubscribed] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -33,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
     // Listen for custom event
     const handleEmailSubmitted = () => {
       checkSubscription();
-      setShowEmailModal(false);
+      // No need to close modal here, it's handled by onCloseEmailModal prop
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -44,6 +47,15 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
       window.removeEventListener('emailSubmitted', handleEmailSubmitted);
     };
   }, []);
+
+  useEffect(() => {
+    // Clear form when modal is opened/closed
+    if (showEmailModal) {
+      setEmail('');
+      setStatus('idle');
+      setMessage('');
+    }
+  }, [showEmailModal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +86,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
       }
 
       // Dispatch event to notify other components
-      const event = new Event('emailSubmitted');
-      window.dispatchEvent(event);
+      window.dispatchEvent(new Event('emailSubmitted'));
+
+      // Close modal and redirect to ticket URL
+      onCloseEmailModal(); // Close the modal via prop
+      if (redirectTicketUrl) {
+        window.location.href = redirectTicketUrl;
+      }
+
     } catch (err) {
       setStatus('error');
       setMessage('Failed to submit email. Please try again.');
@@ -117,7 +135,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
           <div className="flex items-center">
             {!hasSubscribed && (
               <button
-                onClick={() => setShowEmailModal(true)}
+                onClick={onShowEmailModal}
                 className="text-blue-600 hover:text-blue-800"
               >
                 Subscribe
@@ -134,7 +152,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Subscribe to Events</h2>
               <button
-                onClick={() => setShowEmailModal(false)}
+                onClick={onCloseEmailModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 ✕
@@ -158,9 +176,9 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+                className="w-full bg-louder-purple text-white py-2 px-4 rounded-md hover:bg-louder-purple-dark transition-colors disabled:bg-blue-400"
               >
-                {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+                {status === 'loading' ? 'Subscribing...' : 'Subscribe & Continue'}
               </button>
               {message && (
                 <p

@@ -6,17 +6,39 @@ import EventDetail from './components/EventDetail';
 
 const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [redirectTicketUrl, setRedirectTicketUrl] = useState('');
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
+  };
+  const handleOpenEmailModal = () => {
+        setRedirectTicketUrl('');   // no ticket URL
+        setShowEmailModal(true);
+      };
+
+  const handleShowEmailModal = (ticketUrl: string) => {
+    setRedirectTicketUrl(ticketUrl);
+    setShowEmailModal(true);
+  };
+
+  const handleCloseEmailModal = () => {
+    setShowEmailModal(false);
+    setRedirectTicketUrl(''); // Clear the URL when closing
   };
 
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Navbar onSearchChange={handleSearchChange} />
+      <Navbar
+          onSearchChange={handleSearchChange}
+          showEmailModal={showEmailModal}
+          onShowEmailModal={( ) => handleShowEmailModal('')}  // ← use your existing handler
+          onCloseEmailModal={handleCloseEmailModal}
+          redirectTicketUrl={redirectTicketUrl}
+        />
         <Routes>
-          <Route path="/" element={<Home searchTerm={searchTerm} />} />
+          <Route path="/" element={<Home searchTerm={searchTerm} onShowEmailModalRequest={handleShowEmailModal} />} />
           <Route path="/events/:id" element={<EventDetail />} />
         </Routes>
       </div>
