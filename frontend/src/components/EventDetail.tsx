@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { formatDate } from '../utils/dateUtils';
 
 interface Event {
   id: string;
   title: string;
   description: string;
-  date: string;  // Changed to string since MongoDB date is serialized
+  date: string;
   venue: string;
   image_url: string;
   ticket_url: string;
+  source_id: string;
 }
 
 const EventDetail: React.FC = () => {
@@ -17,19 +20,19 @@ const EventDetail: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [email, setEmail] = useState(() => localStorage.getItem('userEmail') || '');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/events/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch event details');
-        }
-        const data = await response.json();
-        console.log('Received event data:', data); // Debug log
-        setEvent(data);
+        const response = await axios.get(`http://localhost:8000/events/${id}`);
+        setEvent(response.data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError('Failed to load event details');
+        console.error('Error fetching event:', err);
       } finally {
         setLoading(false);
       }
@@ -38,48 +41,70 @@ const EventDetail: React.FC = () => {
     fetchEvent();
   }, [id]);
 
-  const formatDate = (dateString: string) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError(null);
+    setIsSubmitting(true);
+
     try {
-      // Handle relative dates (e.g., "Tomorrow at 12:00 PM")
-      if (dateString.toLowerCase().includes('tomorrow') || 
-          dateString.toLowerCase().includes('today') ||
-          dateString.toLowerCase().includes('saturday') ||
-          dateString.toLowerCase().includes('friday')) {
-        return dateString;
-      }
-
-      // Handle absolute dates (e.g., "Wed, May 28, 8:30 AM")
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        console.error('Invalid date string:', dateString);
-        return 'Invalid date';
-      }
-
-      return date.toLocaleString('en-AU', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
+      const response = await axios.post('http://localhost:8000/submit-email', {
+        email
       });
-    } catch (err) {
-      console.error('Error formatting date:', err, 'Date string:', dateString);
-      return 'Date format error';
+      
+      // Save email to localStorage
+      localStorage.setItem('userEmail', email);
+      // Dispatch custom event for Navbar to update
+      window.dispatchEvent(new Event('emailSubmitted'));
+      setShowEmailModal(false);
+      
+      // Redirect to the ticket URL after successful submission
+      if (event?.ticket_url) {
+        window.location.href = event.ticket_url;
+      }
+    } catch (err: any) {
+      if (err.response?.data?.detail) {
+        setEmailError(err.response.data.detail);
+      } else {
+        setEmailError('Failed to submit email. Please try again.');
+      }
+      console.error('Error submitting email:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-8">Loading event details...</div>;
-  }
+  const handleGetTickets = async () => {
+    if (email) {
+      // If we already have the email, submit directly
+      try {
+        const response = await axios.post('http://localhost:8000/submit-email', {
+          email
+        });
+        
+        // Dispatch custom event for Navbar to update
+        window.dispatchEvent(new Event('emailSubmitted'));
+        
+        if (event?.ticket_url) {
+          window.location.href = event.ticket_url;
+        }
+      } catch (err: any) {
+        if (err.response?.data?.detail) {
+          setEmailError(err.response.data.detail);
+          setShowEmailModal(true); // Show modal if there's an error
+        } else {
+          setEmailError('Failed to submit email. Please try again.');
+          setShowEmailModal(true);
+        }
+        console.error('Error submitting email:', err);
+      }
+    } else {
+      // If no email is stored, show the modal
+      setShowEmailModal(true);
+    }
+  };
 
-  if (error || !event) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        {error || 'Event not found'}
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center py-8">Loading event details...</div>;
+  if (error || !event) return <div className="text-center py-8 text-red-600">{error || 'Event not found'}</div>;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -89,6 +114,7 @@ const EventDetail: React.FC = () => {
       >
         ← Back to Events
       </button>
+
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <img
           src={event.image_url}
@@ -97,7 +123,6 @@ const EventDetail: React.FC = () => {
         />
         <div className="p-6">
           <h1 className="text-3xl font-bold mb-4">{event.title}</h1>
-          <p className="text-gray-600 mb-4">{event.description}</p>
           <div className="space-y-2 mb-6">
             <p className="text-gray-700">
               <span className="font-semibold">Date:</span>{' '}
@@ -107,16 +132,56 @@ const EventDetail: React.FC = () => {
               <span className="font-semibold">Venue:</span> {event.venue}
             </p>
           </div>
-          <a
-            href={event.ticket_url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleGetTickets}
             className="inline-block bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors"
           >
             Get Tickets
-          </a>
+          </button>
         </div>
       </div>
+
+      {/* Email Subscription Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-4">Get Event Updates</h2>
+            <p className="text-gray-600 mb-4">
+              Enter your email to receive updates about this event and be redirected to the ticket page.
+            </p>
+            <form onSubmit={handleEmailSubmit}>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="w-full p-2 border rounded mb-4"
+                required
+              />
+              {emailError && (
+                <p className="text-red-500 mb-4">{emailError}</p>
+              )}
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Subscribe & Continue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

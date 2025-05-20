@@ -31,17 +31,32 @@ app.add_middleware(
 # Initialize database
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGODB_URL)
-db = client.event_database
+db = client.sydney_events
 events_collection = db.events
 email_submissions_collection = db.email_submissions
+
+# Create indexes for email submissions
+async def init_db():
+    try:
+        # Drop existing indexes and collection
+        await email_submissions_collection.drop_indexes()
+        await email_submissions_collection.drop()
+        
+        # Create new collection with unique index on email
+        await email_submissions_collection.create_index(
+            [("email", 1)],
+            unique=True
+        )
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Error initializing database: {str(e)}")
 
 #
 # Pydantic schema for incoming email submissions.
 # Note: event_id is now a string (e.g. the source_id or the MongoDB _id as a string).
 #
 class EmailSubmission(BaseModel):
-    email: EmailStr
-    event_id: str
+    email: str
 
 
 async def cleanup_past_events():
@@ -103,8 +118,9 @@ async def periodic_tasks():
 @app.on_event("startup")
 async def startup_event():
     """
-    When the app starts, launch the background tasks.
+    When the app starts, initialize the database and launch background tasks.
     """
+    await init_db()
     asyncio.create_task(periodic_tasks())
 
 
@@ -142,17 +158,36 @@ async def get_event(event_id: str):
 @app.post("/submit-email")
 async def submit_email(submission: EmailSubmission):
     """
-    Accepts an email and an event_id (string). Stores it in the 'email_submissions'
-    collection along with a timestamp.
+    Accepts an email and stores it in the 'email_submissions' collection.
     """
     try:
-        await email_submissions_collection.insert_one({
+        # Basic email validation
+        if not '@' in submission.email or not '.' in submission.email:
+            raise HTTPException(status_code=400, detail="Invalid email format")
+
+        print(f"Received email submission: {submission.email}")
+        
+        # Check if email already exists
+        existing_submission = await email_submissions_collection.find_one({
+            "email": submission.email
+        })
+
+        if existing_submission:
+            print(f"Email {submission.email} already subscribed")
+            return {"message": "Email already subscribed"}
+
+        # Insert new submission
+        result = await email_submissions_collection.insert_one({
             "email": submission.email,
-            "event_id": submission.event_id,
             "submitted_at": datetime.utcnow()
         })
+        
+        print(f"Successfully stored email submission with ID: {result.inserted_id}")
         return {"message": "Email submitted successfully"}
+    except HTTPException as he:
+        raise he
     except Exception as e:
+        print(f"Error submitting email: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

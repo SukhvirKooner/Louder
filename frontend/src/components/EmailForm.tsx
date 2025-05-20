@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const EmailForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const userEmail = localStorage.getItem('userEmail');
+    if (userEmail) {
+      setEmail(userEmail);
+      setSuccess(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +34,16 @@ const EmailForm: React.FC = () => {
       setStatus('success');
       setMessage('Thank you for subscribing!');
       setEmail('');
+
+      const event = new Event('emailSubmitted');
+      window.dispatchEvent(event);
+
+      try {
+        localStorage.setItem('userEmail', email);
+        console.log('Email saved to localStorage:', email);
+      } catch (storageError) {
+        console.error('Error saving to localStorage:', storageError);
+      }
     } catch (err) {
       setStatus('error');
       setMessage('Failed to submit email. Please try again.');
