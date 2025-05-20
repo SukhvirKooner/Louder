@@ -29,7 +29,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onShowEmailModalRequest })
 
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden hover-scale transition-transform duration-200">
-      <Link to={`/events/${event.id}`}>
+      <Link to={`/`}>
         <div className="relative h-48">
           <img
             src={event.image_url}
@@ -40,7 +40,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onShowEmailModalRequest })
         </div>
       </Link>
       <div className="p-4">
-        <Link to={`/events/${event.id}`} className="block">
+        <Link to={`/`} className="block">
           <h3 className="text-xl font-semibold mb-2 hover:text-louder-purple transition-colors">
             {event.title}
           </h3>

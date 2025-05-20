@@ -136,7 +136,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
             {!hasSubscribed && (
               <button
                 onClick={onShowEmailModal}
-                className="text-blue-600 hover:text-blue-800"
+                className="bg-louder-purple hover:bg-louder-purple-dark text-white font-semibold py-3 px-10 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
               >
                 Subscribe
               </button>
@@ -160,9 +160,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
                 <input
                   type="email"
                   id="email"

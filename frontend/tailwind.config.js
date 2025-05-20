@@ -6,8 +6,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'louder-purple': '#6366F1',
-        'louder-purple-dark': '#4F46E5',
+        'louder-purple': '#7C3AED',
+        'louder-purple-dark': '#6025C0',
       },
       fontFamily: {
         'poppins': ['Poppins', 'sans-serif'],
