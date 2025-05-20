@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  onSearchChange: (term: string) => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onSearchChange }) => {
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail] = useState('');
@@ -79,8 +83,9 @@ const Navbar: React.FC = () => {
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    // TODO: Implement search functionality
+    const value = e.target.value;
+    setSearchTerm(value);
+    onSearchChange(value);
   };
 
   return (
