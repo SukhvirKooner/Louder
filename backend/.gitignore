@@ -31,4 +31,8 @@ ENV/
 .idea/
 .vscode/
 *.swp
-*.swo 
+*.swo
+
+# Scraped Data
+scraped_events.jsonl
+www_eventbrite_com_soup.html
