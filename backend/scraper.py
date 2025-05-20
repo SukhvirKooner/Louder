@@ -6,6 +6,8 @@ from models import Event
 import json
 import calendar
 import re
+from datetime import datetime, date, timedelta
+from typing import Optional
 
 class EventScraper:
     def __init__(self):
@@ -73,6 +75,7 @@ class EventScraper:
                         image_url = img_tag["src"] if img_tag and img_tag.has_attr("src") else ""
 
                         # 6) Parse raw_date_time into a datetime
+                        print(raw_date_time)
                         date_obj = self._parse_date_time(raw_date_time)
 
                         # 7) Build the Event object
@@ -89,7 +92,6 @@ class EventScraper:
 
                         # 8) Append to list and write to JSONL
                         events.append(event)
-                        print(f"Scraped event: {source_id} – {title}")
 
                         with open("scraped_events.jsonl", "a", encoding="utf-8") as fp:
                             event_data = event.dict(exclude_none=True, exclude={"id"})
@@ -103,83 +105,123 @@ class EventScraper:
             #     ...
             # elif "ticketmaster" in url:
             #     ...
+            
         return events
 
     def _parse_date_time(self, raw: str) -> Optional[datetime]:
         """
-        Parses strings like:
-          - "Fri, May 28, 8:30 PM"
-          - "May 28, 8:30 PM"
-          - "Tomorrow, 8:30 PM"
-          - "Friday, 8:30 PM"
-        into a datetime (assuming current year). Returns None on failure.
+        Parse strings like:
+          - "Tomorrow at 12:00 PM"
+          - "Fri, May 28, 8:30 AM"
+          - "Tue, Jun 10, 8:30 AM"
+          - "Friday at 10:00 PM"
+          - "Thursday at 6:30 PM"
+          - "Sat, Jun 14, 2:00 PM"
+        into a datetime (assuming current year). Returns None if parsing fails.
         """
-        raw = raw.strip()
         if not raw:
             return None
 
-        # Split on commas, last part is the time
-        parts = [p.strip() for p in raw.split(",")]
-        time_part = parts[-1]  # e.g. "8:30 PM"
-        # Parse time portion
+        # 1) Normalize “at” → comma, and bullets/pipes → comma
+        normalized = raw.replace(" at ", ", ").replace("•", ",").replace("·", ",").replace("|", ",")
+        # Collapse any repeated commas/spaces
+        normalized = re.sub(r",\s*,+", ",", normalized).strip()
+
+        # 2) Split on commas
+        parts = [p.strip() for p in normalized.split(",") if p.strip()]
+        # Examples:
+        #   ["Tomorrow", "12:00 PM"]
+        #   ["Fri", "May 28", "8:30 AM"]
+        #   ["Friday", "10:00 PM"]
+        #   ["Sat", "Jun 14", "2:00 PM"]
+
+        # 3) Find the part containing a time (e.g. "10:00 PM" or "8:30 AM")
+        time_part = None
+        for p in parts:
+            if re.search(r"\b\d{1,2}:\d{2}\s*[APap][Mm]\b", p):
+                time_part = p
+                break
+        if not time_part:
+            return None
+
+        # Parse the time portion
         try:
-            time_obj = datetime.strptime(time_part, "%I:%M %p").time()
+            time_obj = datetime.strptime(time_part.upper(), "%I:%M %p").time()
         except ValueError:
             return None
 
         today_date = date.today()
         current_year = today_date.year
 
-        def next_weekday(target_wd: int) -> date:
-            today_wd = today_date.weekday()
+        # Helper: next occurrence of a given weekday (0=Monday … 6=Sunday)
+        def next_weekday(curr: date, target_wd: int) -> date:
+            today_wd = curr.weekday()
             days_ahead = (target_wd - today_wd + 7) % 7
             if days_ahead == 0:
-                days_ahead = 7
-            return today_date + timedelta(days=days_ahead)
+                days_ahead = 7  # skip today, go to next week
+            return curr + timedelta(days=days_ahead)
 
+        # 4) Check the first part (lowercased) for "today"/"tomorrow"/weekday/month/day
         first_part = parts[0].lower()
 
-        # 1) “today, 8:30 PM”
+        # "today"
         if "today" in first_part:
             event_date = today_date
 
-        # 2) “tomorrow, 8:30 PM”
+        # "tomorrow"
         elif "tomorrow" in first_part:
             event_date = today_date + timedelta(days=1)
 
         else:
-            # 3) Check if first_part is a weekday name or abbreviation
-            # Build mapping of full weekday names and abbreviations
+            # Try matching full weekday names and abbreviations
             weekdays_full = {name.lower(): idx for idx, name in enumerate(calendar.day_name)}
             weekdays_abbr = {name.lower(): idx for idx, name in enumerate(calendar.day_abbr)}
 
             if first_part in weekdays_full:
                 target_wd = weekdays_full[first_part]
-                event_date = next_weekday(target_wd)
+                event_date = next_weekday(today_date, target_wd)
 
             elif first_part in weekdays_abbr:
                 target_wd = weekdays_abbr[first_part]
-                event_date = next_weekday(target_wd)
+                event_date = next_weekday(today_date, target_wd)
 
             else:
-                # Look for a "Month day" substring
-                month_day_part = None
+                # Not a plain weekday/today/tomorrow. Try to find a "month day" part.
+                month_day_str = None
                 for p in parts:
+                    # Look for any full month name or abbreviation in p
                     if any(mon.lower() in p.lower() for mon in calendar.month_name if mon):
-                        month_day_part = p
+                        month_day_str = p
+                        break
+                    if any(ab.lower() in p.lower() for ab in calendar.month_abbr if ab):
+                        month_day_str = p
                         break
 
-                if not month_day_part:
+                if not month_day_str:
                     return None
 
-                # Try parsing "May 28" or "May 28" + current_year
-                try:
-                    event_date = datetime.strptime(f"{month_day_part} {current_year}", "%b %d %Y").date()
-                except ValueError:
+                md = month_day_str.strip()
+                # Check if it already contains a 4‑digit year, e.g. "Jun 10 2025"
+                year_match = re.search(r"\b(\d{4})\b", md)
+                if year_match:
+                    # Parse with either abbreviated or full month name + year
                     try:
-                        event_date = datetime.strptime(f"{month_day_part} {current_year}", "%B %d %Y").date()
+                        event_date = datetime.strptime(md, "%b %d %Y").date()
                     except ValueError:
-                        return None
+                        try:
+                            event_date = datetime.strptime(md, "%B %d %Y").date()
+                        except ValueError:
+                            return None
+                else:
+                    # No year in string → append current year and parse
+                    try:
+                        event_date = datetime.strptime(f"{md} {current_year}", "%b %d %Y").date()
+                    except ValueError:
+                        try:
+                            event_date = datetime.strptime(f"{md} {current_year}", "%B %d %Y").date()
+                        except ValueError:
+                            return None
 
-        # Combine date and time into a single datetime
+        # 5) Combine the determined date with parsed time
         return datetime.combine(event_date, time_obj)
+        
