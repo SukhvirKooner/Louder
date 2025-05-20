@@ -1,4 +1,3 @@
-# Sydney Events Hub
 
 A web application that automatically scrapes and displays events from Sydney, Australia.
 

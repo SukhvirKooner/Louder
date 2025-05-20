@@ -17,7 +17,7 @@ from models import Event as EventModel  # Pydantic model from models.py
 
 load_dotenv()
 
-app = FastAPI(title="Sydney Events Hub")
+app = FastAPI(title="Louder")
 
 # CORS middleware (adjust origins as needed)
 app.add_middleware(
