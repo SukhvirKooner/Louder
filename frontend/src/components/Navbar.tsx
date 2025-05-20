@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [hasSubscribed, setHasSubscribed] = useState(false);
@@ -7,6 +8,7 @@ const Navbar: React.FC = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const checkSubscription = () => {
     const userEmail = localStorage.getItem('userEmail');
@@ -76,27 +78,49 @@ const Navbar: React.FC = () => {
     }
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    // TODO: Implement search functionality
+  };
+
   return (
     <>
-      <nav className="bg-white shadow-md">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="text-xl font-bold text-blue-600">
-              Sydney Events Hub
+      <header className="sticky top-0 z-50 bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center mb-4 md:mb-0">
+            <Link to="/" className="text-3xl md:text-4xl font-bold font-poppins text-louder-purple">
+              <span className="text-louder-purple-dark">LOUDER</span>
             </Link>
-            <div className="flex items-center space-x-4">
-              {!hasSubscribed && (
-                <button
-                  onClick={() => setShowEmailModal(true)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  Subscribe
-                </button>
-              )}
+            <span className="hidden md:inline-block ml-2 text-sm text-gray-500">SYDNEY</span>
+          </div>
+          
+          <div className="w-full md:w-1/2 lg:w-1/3 mb-4 md:mb-0">
+            <div className="relative w-full">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <Search size={18} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search events or venues..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-louder-purple focus:border-transparent transition-all duration-200"
+              />
             </div>
           </div>
+          
+          <div className="flex items-center">
+            {!hasSubscribed && (
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                Subscribe
+              </button>
+            )}
+          </div>
         </div>
-      </nav>
+      </header>
 
       {/* Email Modal */}
       {showEmailModal && (
