@@ -38,6 +38,7 @@ const App: React.FC = () => {
         />
         <Routes>
           <Route path="/" element={<Home searchTerm={searchTerm} onShowEmailModalRequest={handleShowEmailModal} />} />
+
         </Routes>
       </div>
     </Router>

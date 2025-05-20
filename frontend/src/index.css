@@ -9,19 +9,31 @@
     font-family: 'Poppins', system-ui, sans-serif;
     background-color: #000;
     color: #fff;
+    background: #000;
+    margin: 0;
+    padding: 0;
   }
   body {
     background-color: #000;
     color: #fff;
+    background: #000;
+    margin: 0;
+    padding: 0;
   }
 }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #000; /* if you want the page background black too */
+}
+
 
 .bg-dark {
   background-color: #000 !important;
 }
-.bg-light {
+/* .bg-light {
   background-color: #fff !important;
-}
+} */
 .text-dark {
   color: #000 !important;
 }

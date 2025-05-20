@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import EventCard from '../components/EventCard';
 import { formatDate } from '../utils/dateUtils';
-
+import { ShootingStars } from "../components/ui/shooting-stars";
+import { StarsBackground } from "../components/ui/stars-background";
 interface Event {
   id: string;
   title: string;
@@ -84,7 +85,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   return (
     <div className="min-h-screen bg-black">
       {/* Hero Section */}
-      <section className="bg-white text-black py-20">
+      <section className="text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -93,6 +94,8 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
             <p className="text-lg md:text-xl text-gray-700 mb-8">
               Find and book tickets for the best events happening in Sydney
             </p>
+            <ShootingStars />
+            <StarsBackground />
           </div>
         </div>
       </section>
