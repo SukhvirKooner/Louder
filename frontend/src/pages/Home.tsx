@@ -22,6 +22,8 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const EVENTS_PER_PAGE = 30;
 
   useEffect(() => {
     fetchEvents();
@@ -30,6 +32,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredEvents(events);
+      setCurrentPage(1); // Reset to first page on new search
       return;
     }
 
@@ -39,6 +42,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
       event.venue.toLowerCase().includes(searchTermLower)
     );
     setFilteredEvents(filtered);
+    setCurrentPage(1); // Reset to first page on new search
   }, [searchTerm, events]);
 
   const fetchEvents = async () => {
@@ -56,6 +60,22 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
       setLoading(false);
       console.error('Error fetching events:', err);
     }
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredEvents.length / EVENTS_PER_PAGE);
+  const startIdx = (currentPage - 1) * EVENTS_PER_PAGE;
+  const endIdx = startIdx + EVENTS_PER_PAGE;
+  const currentEvents = filteredEvents.slice(startIdx, endIdx);
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) return <div className="text-center py-8">Loading events...</div>;
@@ -80,13 +100,43 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
       {/* Events Grid */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEvents.map((event) => (
+          {currentEvents.map((event) => (
             <EventCard key={event.id} event={event} onShowEmailModalRequest={onShowEmailModalRequest} />
           ))}
         </div>
         {filteredEvents.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             No events found matching your search.
+          </div>
+        )}
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-4 mt-8 mb-4">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className={`px-6 py-2 rounded-full font-semibold transition-colors duration-200 ${
+                currentPage === 1
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              Previous
+            </button>
+            <span className="text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className={`px-6 py-2 rounded-full font-semibold transition-colors duration-200 ${
+                currentPage === totalPages
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              Next
+            </button>
           </div>
         )}
       </section>
