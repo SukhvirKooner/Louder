@@ -6,14 +6,12 @@ from models import Event
 import json
 import calendar
 import re
-from datetime import datetime, date, timedelta
-from typing import Optional
 
 class EventScraper:
     def __init__(self):
         self.sources = [
             "https://www.eventbrite.com/d/australia--sydney/all-events/"
-            # Add Moshtix and Ticketmaster URLs here when ready
+            # Add other URLs later
         ]
 
     async def scrape_events(self) -> List[Event]:
@@ -36,32 +34,23 @@ class EventScraper:
             html = await response.text()
             soup = BeautifulSoup(html, 'html.parser')
 
-            # Optionally write prettified HTML to file (for debugging)
+            # Debug: write out the HTML
             domain = url.split("/")[2].replace(".", "_")
             with open(f"{domain}_soup.html", "w", encoding="utf-8") as f:
                 f.write(soup.prettify())
 
-            # --- EVENTBRITE scraping logic ---
             if "eventbrite" in url:
                 selector = "div.Container_root__4i85v.NestedActionContainer_root__1jtfr.event-card"
                 for element in soup.select(selector):
                     try:
-                        # 1) source_id (data-event-id on <a class="event-card-link">)
                         link_tag = element.select_one("a.event-card-link")
-                        source_id = ""
-                        if link_tag and link_tag.has_attr("data-event-id"):
-                            source_id = link_tag["data-event-id"].strip()
+                        source_id = link_tag["data-event-id"].strip() if link_tag and link_tag.has_attr("data-event-id") else ""
 
-                        # 2) Title
-                        title_tag = element.select_one(
-                            "a.event-card-link h3.event-card__clamp-line--two"
-                        )
+                        title_tag = element.select_one("a.event-card-link h3.event-card__clamp-line--two")
                         title = title_tag.get_text(strip=True) if title_tag else ""
 
-                        # 3) Ticket URL
                         ticket_url = link_tag["href"] if link_tag and link_tag.has_attr("href") else ""
 
-                        # 4) Date & Time + Venue
                         info_tags = element.select("p.event-card__clamp-line--one")
                         if len(info_tags) >= 2:
                             raw_date_time = info_tags[0].get_text(strip=True)
@@ -70,17 +59,16 @@ class EventScraper:
                             raw_date_time = ""
                             venue = ""
 
-                        # 5) Image URL (if any)
                         img_tag = element.select_one("img")
                         image_url = img_tag["src"] if img_tag and img_tag.has_attr("src") else ""
 
-                        # 6) Parse raw_date_time into a datetime
+                        # NEW: print raw_date_time to verify
                         print(raw_date_time)
+
                         date_obj = self._parse_date_time(raw_date_time)
 
-                        # 7) Build the Event object
                         event = Event(
-                            source_id=source_id,          # ← new field
+                            source_id=source_id,
                             title=title,
                             description="",
                             date=date_obj,
@@ -90,23 +78,16 @@ class EventScraper:
                             source_url=url
                         )
 
-                        # 8) Append to list and write to JSONL
                         events.append(event)
-
                         with open("scraped_events.jsonl", "a", encoding="utf-8") as fp:
-                            event_data = event.dict(exclude_none=True, exclude={"id"})
-                            fp.write(json.dumps(event_data, default=str) + "\n")
+                            data = event.dict(exclude_none=True, exclude={"id"})
+                            fp.write(json.dumps(data, default=str) + "\n")
 
                     except Exception as e:
                         print(f"Error parsing Eventbrite card: {e}")
 
-            # --- (placeholders for Moshtix, Ticketmaster) ---
-            # elif "moshtix" in url:
-            #     ...
-            # elif "ticketmaster" in url:
-            #     ...
-            
         return events
+
 
     def _parse_date_time(self, raw: str) -> Optional[datetime]:
         """
@@ -119,23 +100,23 @@ class EventScraper:
           - "Sat, Jun 14, 2:00 PM"
         into a datetime (assuming current year). Returns None if parsing fails.
         """
+
         if not raw:
             return None
-
         # 1) Normalize “at” → comma, and bullets/pipes → comma
-        normalized = raw.replace(" at ", ", ").replace("•", ",").replace("·", ",").replace("|", ",")
-        # Collapse any repeated commas/spaces
+        normalized = (
+            raw
+            .replace(" at ", ", ")
+            .replace("•", ",")
+            .replace("·", ",")
+            .replace("|", ",")
+        )
         normalized = re.sub(r",\s*,+", ",", normalized).strip()
 
         # 2) Split on commas
         parts = [p.strip() for p in normalized.split(",") if p.strip()]
-        # Examples:
-        #   ["Tomorrow", "12:00 PM"]
-        #   ["Fri", "May 28", "8:30 AM"]
-        #   ["Friday", "10:00 PM"]
-        #   ["Sat", "Jun 14", "2:00 PM"]
 
-        # 3) Find the part containing a time (e.g. "10:00 PM" or "8:30 AM")
+        # 3) Find the time portion
         time_part = None
         for p in parts:
             if re.search(r"\b\d{1,2}:\d{2}\s*[APap][Mm]\b", p):
@@ -144,7 +125,6 @@ class EventScraper:
         if not time_part:
             return None
 
-        # Parse the time portion
         try:
             time_obj = datetime.strptime(time_part.upper(), "%I:%M %p").time()
         except ValueError:
@@ -153,75 +133,64 @@ class EventScraper:
         today_date = date.today()
         current_year = today_date.year
 
-        # Helper: next occurrence of a given weekday (0=Monday … 6=Sunday)
+        # Helper for next weekday
         def next_weekday(curr: date, target_wd: int) -> date:
             today_wd = curr.weekday()
             days_ahead = (target_wd - today_wd + 7) % 7
             if days_ahead == 0:
-                days_ahead = 7  # skip today, go to next week
+                days_ahead = 7
             return curr + timedelta(days=days_ahead)
 
-        # 4) Check the first part (lowercased) for "today"/"tomorrow"/weekday/month/day
+        # 4) FIRST: look for a month-day substring
+        month_day_str = None
+        for p in parts:
+            if any(mon.lower() in p.lower() for mon in calendar.month_name if mon):
+                month_day_str = p
+                break
+            if any(ab.lower() in p.lower() for ab in calendar.month_abbr if ab):
+                month_day_str = p
+                break
+
+        if month_day_str:
+            md = month_day_str.strip()
+            year_match = re.search(r"\b(\d{4})\b", md)
+            if year_match:
+                try:
+                    event_date = datetime.strptime(md, "%b %d %Y").date()
+                except ValueError:
+                    try:
+                        event_date = datetime.strptime(md, "%B %d %Y").date()
+                    except ValueError:
+                        return None
+            else:
+                try:
+                    event_date = datetime.strptime(f"{md} {current_year}", "%b %d %Y").date()
+                except ValueError:
+                    try:
+                        event_date = datetime.strptime(f"{md} {current_year}", "%B %d %Y").date()
+                    except ValueError:
+                        return None
+
+            return datetime.combine(event_date, time_obj)
+
+        # 5) FALLBACK: today/tomorrow/weekday
         first_part = parts[0].lower()
 
-        # "today"
         if "today" in first_part:
             event_date = today_date
-
-        # "tomorrow"
         elif "tomorrow" in first_part:
             event_date = today_date + timedelta(days=1)
-
         else:
-            # Try matching full weekday names and abbreviations
             weekdays_full = {name.lower(): idx for idx, name in enumerate(calendar.day_name)}
             weekdays_abbr = {name.lower(): idx for idx, name in enumerate(calendar.day_abbr)}
 
             if first_part in weekdays_full:
                 target_wd = weekdays_full[first_part]
                 event_date = next_weekday(today_date, target_wd)
-
             elif first_part in weekdays_abbr:
                 target_wd = weekdays_abbr[first_part]
                 event_date = next_weekday(today_date, target_wd)
-
             else:
-                # Not a plain weekday/today/tomorrow. Try to find a "month day" part.
-                month_day_str = None
-                for p in parts:
-                    # Look for any full month name or abbreviation in p
-                    if any(mon.lower() in p.lower() for mon in calendar.month_name if mon):
-                        month_day_str = p
-                        break
-                    if any(ab.lower() in p.lower() for ab in calendar.month_abbr if ab):
-                        month_day_str = p
-                        break
+                return None
 
-                if not month_day_str:
-                    return None
-
-                md = month_day_str.strip()
-                # Check if it already contains a 4‑digit year, e.g. "Jun 10 2025"
-                year_match = re.search(r"\b(\d{4})\b", md)
-                if year_match:
-                    # Parse with either abbreviated or full month name + year
-                    try:
-                        event_date = datetime.strptime(md, "%b %d %Y").date()
-                    except ValueError:
-                        try:
-                            event_date = datetime.strptime(md, "%B %d %Y").date()
-                        except ValueError:
-                            return None
-                else:
-                    # No year in string → append current year and parse
-                    try:
-                        event_date = datetime.strptime(f"{md} {current_year}", "%b %d %Y").date()
-                    except ValueError:
-                        try:
-                            event_date = datetime.strptime(f"{md} {current_year}", "%B %d %Y").date()
-                        except ValueError:
-                            return None
-
-        # 5) Combine the determined date with parsed time
         return datetime.combine(event_date, time_obj)
-        
