@@ -1,7 +1,7 @@
 import os
 import asyncio
 from datetime import datetime
-
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
