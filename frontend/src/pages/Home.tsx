@@ -4,6 +4,7 @@ import EventCard from '../components/EventCard';
 import { formatDate } from '../utils/dateUtils';
 import { ShootingStars } from "../components/ui/shooting-stars";
 import { StarsBackground } from "../components/ui/stars-background";
+import { ParallaxScroll} from "../components/ui/parallax-scroll"
 interface Event {
   id: string;
   title: string;
@@ -85,7 +86,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   return (
     <div className="min-h-screen bg-black">
       {/* Hero Section */}
-      <section className="text-white py-20">
+      <section  className="bg-black text-white py-28 pb-0 mt-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -94,27 +95,35 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
             <p className="text-lg md:text-xl text-gray-700 mb-8">
               Find and book tickets for the best events happening in Sydney
             </p>
-            <ShootingStars />
-            <StarsBackground />
+            <div className="absolute inset-0 pointer-events-none">
+              <ShootingStars />
+              <StarsBackground />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Events Grid */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {currentEvents.map((event) => (
-            <EventCard key={event.id} event={event} onShowEmailModalRequest={onShowEmailModalRequest} />
+      <section className="container mx-auto  px-1 pt-12">
+
+          <ParallaxScroll>
+        {currentEvents.map((event) => (
+        <EventCard
+         key={event.id}
+           event={event}
+           onShowEmailModalRequest={onShowEmailModalRequest}
+          />
           ))}
-        </div>
+          </ParallaxScroll>
         {filteredEvents.length === 0 && (
           <div className="text-center py-8 text-gray-400">
             No events found matching your search.
           </div>
         )}
-        {/* Pagination Controls */}
+      </section>
+      {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center space-x-4 mt-8 mb-4">
+          <div className="relative z-10 flex justify-center items-center space-x-4 mb-8">
             <button
               onClick={handlePrevPage}
               disabled={currentPage === 1}
@@ -142,7 +151,6 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
             </button>
           </div>
         )}
-      </section>
     </div>
   );
 };

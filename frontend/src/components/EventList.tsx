@@ -5,7 +5,7 @@ interface Event {
   id: string;
   title: string;
   description: string;
-  date: string;  // Changed to string since MongoDB date is serialized
+  date: string;  
   venue: string;
   image_url: string;
   ticket_url: string;
@@ -41,7 +41,6 @@ const EventList: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      // Handle relative dates (e.g., "Tomorrow at 12:00 PM")
       if (dateString.toLowerCase().includes('tomorrow') || 
           dateString.toLowerCase().includes('today') ||
           dateString.toLowerCase().includes('saturday') ||
@@ -49,7 +48,6 @@ const EventList: React.FC = () => {
         return dateString;
       }
 
-      // Handle absolute dates (e.g., "Wed, May 28, 8:30 AM")
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         console.error('Invalid date string:', dateString);
@@ -70,7 +68,6 @@ const EventList: React.FC = () => {
     }
   };
 
-  // Filter events based on search query
   const filteredEvents = events.filter(event => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -80,7 +77,6 @@ const EventList: React.FC = () => {
     );
   });
 
-  // Calculate pagination for filtered events
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = filteredEvents.slice(indexOfFirstEvent, indexOfLastEvent);
@@ -91,7 +87,6 @@ const EventList: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Reset to first page when search query changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);

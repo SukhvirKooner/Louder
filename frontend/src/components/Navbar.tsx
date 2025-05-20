@@ -150,7 +150,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
           <div className="bg-black rounded-lg p-6 max-w-md w-full text-white">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Subscribe to Events</h2>
+              <h2 className="texxl font-bold">Subscribe to Events</h2>
               <button onClick={onCloseEmailModal} className="text-gray-400 hover:text-gray-200">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
