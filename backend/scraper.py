@@ -47,10 +47,10 @@ class EventScraper:
                 html = await response.text()
                 soup = BeautifulSoup(html, "html.parser")
 
-                # (Optional) Write the prettified HTML to file for debugging each page
-                domain = base_url.split("/")[2].replace(".", "_")
-                with open(f"{domain}_page_{page_number}.html", "w", encoding="utf-8") as f:
-                    f.write(soup.prettify())
+                # # (Optional) Write the prettified HTML to file for debugging each page
+                # domain = base_url.split("/")[2].replace(".", "_")
+                # with open(f"{domain}_page_{page_number}.html", "w", encoding="utf-8") as f:
+                #     f.write(soup.prettify())
 
                 # Selector for each Eventbrite “card” on the listing page:
                 selector = "div.Container_root__4i85v.NestedActionContainer_root__1jtfr.event-card"
