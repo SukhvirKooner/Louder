@@ -5,7 +5,7 @@ interface Event {
   id: string;
   title: string;
   description: string;
-  date: string;
+  date: string;  // Changed to string since MongoDB date is serialized
   venue: string;
   image_url: string;
   ticket_url: string;
@@ -24,6 +24,7 @@ const EventList: React.FC = () => {
           throw new Error('Failed to fetch events');
         }
         const data = await response.json();
+        console.log('Received events data:', data); // Debug log
         setEvents(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -34,6 +35,28 @@ const EventList: React.FC = () => {
 
     fetchEvents();
   }, []);
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date string:', dateString);
+        return 'Invalid date';
+      }
+      return date.toLocaleString('en-AU', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Australia/Sydney'
+      });
+    } catch (err) {
+      console.error('Error formatting date:', err, 'Date string:', dateString);
+      return 'Date format error';
+    }
+  };
 
   if (loading) {
     return <div className="text-center py-8">Loading events...</div>;
@@ -60,7 +83,7 @@ const EventList: React.FC = () => {
             <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
             <p className="text-gray-600 mb-2">{event.venue}</p>
             <p className="text-gray-500">
-              {new Date(event.date).toLocaleDateString()}
+              {formatDate(event.date)}
             </p>
           </div>
         </Link>

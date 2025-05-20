@@ -103,7 +103,6 @@ class EventScraper:
             #     ...
             # elif "ticketmaster" in url:
             #     ...
-
         return events
 
     def _parse_date_time(self, raw: str) -> Optional[datetime]:
