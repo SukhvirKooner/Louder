@@ -81,7 +81,11 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (loading) return <div className="text-center py-8">Loading events...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white"></div>
+    </div>
+  );
   if (error) return <div className="text-center py-8 text-red-600">{error}</div>;
 
   return (
