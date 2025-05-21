@@ -10,7 +10,7 @@ load_dotenv()
 class Database:
     def __init__(self):
         self.client = AsyncIOMotorClient(
-            os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+            os.getenv("MONGODB_URL")
         )
         self.db = self.client.sydney_events
         self.events_collection = self.db.events
