@@ -95,7 +95,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
             <span className="hidden md:inline-block ml-2 text-sm text-gray-400">SYDNEY</span>
           </div>
 
-          <div className="relative w-2">
+          <div className="relative w-96">
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
               <Search size={18} />
             </div>
@@ -104,7 +104,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
               placeholder="Search events or venues..."
               value={searchTerm}
               onChange={handleSearch}
-              className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-700 bg-black text-white focus:outline-none focus:ring-2 focus:ring-white"
+              className="w-96 pl-10 pr-4 py-2 rounded-full border border-gray-700 bg-black text-white focus:outline-none focus:ring-2 focus:ring-white"
             />
           </div>
 
