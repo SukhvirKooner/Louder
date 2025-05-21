@@ -18,11 +18,12 @@ const EventList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const eventsPerPage = 30;
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('http://localhost:8000/events');
+        const response = await fetch(`${API_URL}/events`);
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }

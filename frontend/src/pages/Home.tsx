@@ -26,6 +26,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const EVENTS_PER_PAGE = 30;
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     fetchEvents();
@@ -49,7 +50,7 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/events');
+      const response = await axios.get(`${API_URL}/events`);
       const formattedEvents = response.data.map((event: any) => ({
         ...event,
         date: formatDate(event.date)

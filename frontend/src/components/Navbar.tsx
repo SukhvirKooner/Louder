@@ -20,6 +20,8 @@ export interface NavbarProps {
   redirectTicketUrl: string;
 }
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowEmailModal, onCloseEmailModal, redirectTicketUrl }) => {
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [email, setEmail] = useState('');
@@ -64,7 +66,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
     setStatus('loading');
     setMessage('');
     try {
-      const res = await fetch('http://localhost:8000/submit-email', {
+      const res = await fetch(`${API_URL}/submit-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -93,7 +95,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
             <span className="hidden md:inline-block ml-2 text-sm text-gray-400">SYDNEY</span>
           </div>
 
-          <div className="relative w-1/2">
+          <div className="relative w-2">
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
               <Search size={18} />
             </div>
@@ -150,7 +152,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
           <div className="bg-black rounded-lg p-6 max-w-md w-full text-white">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="texxl font-bold">Subscribe to Events</h2>
+              <h2 className="text-2xl font-bold">Subscribe to Events</h2>
               <button onClick={onCloseEmailModal} className="text-gray-400 hover:text-gray-200">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
