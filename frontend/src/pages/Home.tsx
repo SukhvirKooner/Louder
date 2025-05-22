@@ -82,8 +82,9 @@ const Home: React.FC<HomeProps> = ({ searchTerm, onShowEmailModalRequest }) => {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-black">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white"></div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-6"></div>
+      <p className="text-white text-sm opacity-70">This may take a few seconds to load events...</p>
     </div>
   );
   if (error) return <div className="text-center py-8 text-red-600">{error}</div>;
