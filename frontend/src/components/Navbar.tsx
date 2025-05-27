@@ -82,7 +82,11 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
           setStatus('success');
           setTimeout(() => {
             onCloseEmailModal();
-            window.open(redirectTicketUrl, '_blank');
+            if (redirectTicketUrl) {
+              window.open(redirectTicketUrl, '_blank');
+            } else {
+              window.location.reload();
+            }
           }, 1000);
         } else {
           setMessage(data.detail || 'Failed to subscribe');
@@ -135,7 +139,11 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
         localStorage.setItem('userEmail', email);
         setTimeout(() => {
           onCloseEmailModal();
-          window.open(redirectTicketUrl, '_blank');
+          if (redirectTicketUrl) {
+            window.open(redirectTicketUrl, '_blank');
+          } else {
+            window.location.reload();
+          }
         }, 1000);
       } else {
         setMessage(data.detail || 'Invalid OTP');
