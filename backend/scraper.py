@@ -7,12 +7,12 @@ import json
 import calendar
 import re
 
+
 class EventScraper:
     def __init__(self):
         # Base URL for the “All Events in Sydney” listing (no page parameter here)
         self.sources = [
             "https://www.eventbrite.com/d/australia--sydney/all-events/"
-            # You can add more sources (Moshtix, Ticketmaster) later, each with its own pagination logic.
         ]
 
     async def scrape_events(self) -> List[Event]:

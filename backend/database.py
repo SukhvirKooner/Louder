@@ -9,12 +9,33 @@ load_dotenv()
 
 class Database:
     def __init__(self):
-        self.client = AsyncIOMotorClient(
-            os.getenv("MONGODB_URL")
-        )
+        self.client = AsyncIOMotorClient(os.getenv("MONGODB_URL"))
         self.db = self.client.sydney_events
+
+        # Collections
         self.events_collection = self.db.events
         self.email_submissions_collection = self.db.email_submissions
+        self.otps_collection = self.db.otps
+        self.verified_emails_collection = self.db.verified_emails
+
+    async def ensure_indexes(self):
+        # Unique index on (email, event_id) in email_submissions
+        await self.email_submissions_collection.create_index(
+            [("email", 1), ("event_id", 1)],
+            unique=True
+        )
+
+        # TTL index on OTPs (expire after 300 seconds)
+        await self.otps_collection.create_index(
+            [("created_at", 1)],
+            expireAfterSeconds=300
+        )
+
+        # Unique index on verified_emails.email
+        await self.verified_emails_collection.create_index(
+            [("email", 1)],
+            unique=True
+        )
 
     async def get_all_events(self) -> List[Event]:
         events = []
@@ -25,7 +46,7 @@ class Database:
                 source_id=document.get("source_id", ""),
                 title=document.get("title", ""),
                 description=document.get("description", ""),
-                date=document.get("date"),      # will be None or a datetime
+                date=document.get("date"),
                 venue=document.get("venue", ""),
                 image_url=document.get("image_url", ""),
                 ticket_url=document.get("ticket_url", ""),
@@ -34,43 +55,74 @@ class Database:
         return events
 
     async def update_events(self, events: List[Event]):
-        """
-        Upsert each event by (source_url, source_id). Always $set all fields
-        so that if date/venue were missing on first insert, they get filled in
-        later. 
-        """
         for event in events:
-            # Convert Event to a dict, dropping None values and excluding "id"
             event_data = event.dict(exclude_none=True, exclude={"id"})
-
-            # The filter ensures uniqueness per source
             filter_query = {
                 "source_url": event.source_url,
                 "source_id": event.source_id
             }
-
-            # $set will update existing documents, or insert if none exist
             update_doc = {"$set": event_data}
-
             try:
                 await self.events_collection.update_one(
-                    filter_query,
-                    update_doc,
-                    upsert=True
+                    filter_query, update_doc, upsert=True
                 )
             except Exception as e:
                 print(f"[Database.update_events] Failed to upsert {event.source_id}: {e}")
 
-    async def save_email_submission(self, email: str, event_id: str):
-        submission = {
+    # --- OTP & Verification Methods ---
+
+    async def create_otp(self, email: str, otp: str):
+        await self.otps_collection.insert_one({
             "email": email,
-            "event_id": event_id,
-            "submitted_at": datetime.utcnow()
-        }
+            "otp": otp,
+            "created_at": datetime.utcnow()
+        })
+
+    async def verify_otp(self, email: str, otp: str) -> bool:
+        record = await self.otps_collection.find_one(
+            {"email": email}, sort=[("created_at", -1)]
+        )
+        if not record:
+            return False
+
+        # TTL index ensures old docs are gone; double-check in code too:
+        if (datetime.utcnow() - record["created_at"]).total_seconds() > 300:
+            return False
+
+        if record["otp"] != otp:
+            return False
+
+        await self.verified_emails_collection.update_one(
+            {"email": email},
+            {"$set": {"verified": True, "verified_at": datetime.utcnow()}},
+            upsert=True
+        )
+        return True
+
+    async def is_email_verified(self, email: str) -> bool:
+        doc = await self.verified_emails_collection.find_one({
+            "email": email,
+            "verified": True
+        })
+        return doc is not None
+
+    async def save_email_submission(self, email: str, event_id: str):
+        # Ensure email is verified first
+        if not await self.is_email_verified(email):
+            raise Exception("Email not verified")
+
         try:
-            await self.email_submissions_collection.insert_one(submission)
+            await self.email_submissions_collection.insert_one({
+                "email": email,
+                "event_id": event_id,
+                "submitted_at": datetime.utcnow()
+            })
         except Exception as e:
-            print(f"[Database.save_email_submission] Error: {e}")
+            if "duplicate key error" in str(e).lower():
+                # Already subscribed; ignore
+                return
+            else:
+                raise
 
     def close(self):
         self.client.close()
