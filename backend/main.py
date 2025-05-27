@@ -85,6 +85,7 @@ class EmailSubmission(BaseModel):
 class OTPVerifyRequest(BaseModel):
     email: str
     otp: str
+    dob: str | None = None
 
 
 async def cleanup_past_events():
@@ -205,22 +206,22 @@ async def send_otp(payload: dict):
     """
     1) Validate email
     2) Generate OTP
-    3) Store {email, otp, created_at} in otps_collection (with TTL index)
+    3) Store {email, otp, dob, created_at} in otps_collection (with TTL index)
     4) Send OTP via email
     """
     email = payload.get("email")
+    dob = payload.get("dob")
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Invalid email")
-
-    # Generate and store OTP
+    if not dob:
+        raise HTTPException(status_code=400, detail="Date of birth required")
     otp = generate_otp()
     await otps_collection.insert_one({
         "email": email,
         "otp": otp,
+        "dob": dob,
         "created_at": datetime.utcnow()
     })
-
-    # Send it out
     await send_email_otp(email, otp)
     return {"message": "OTP sent to email"}
 
@@ -229,9 +230,9 @@ async def send_otp(payload: dict):
 async def verify_otp(request: OTPVerifyRequest):
     """
     1) Look up the latest OTP for this email
-    2) If no record: error “No OTP sent”
-    3) If OTP expired (> 5 minutes): error “OTP expired”
-    4) If code mismatches: error “Invalid OTP”
+    2) If no record: error "No OTP sent"
+    3) If OTP expired (> 5 minutes): error "OTP expired"
+    4) If code mismatches: error "Invalid OTP"
     5) Otherwise: mark email as verified in verified_emails_collection
     """
     record = await otps_collection.find_one(
@@ -249,9 +250,10 @@ async def verify_otp(request: OTPVerifyRequest):
     if record["otp"] != request.otp:
         raise HTTPException(status_code=401, detail="Invalid OTP")
 
+    # Store dob in verified_emails_collection
     await verified_emails_collection.update_one(
         {"email": request.email},
-        {"$set": {"verified": True, "verified_at": datetime.utcnow()}},
+        {"$set": {"verified": True, "verified_at": datetime.utcnow(), "dob": request.dob or record.get("dob")}},
         upsert=True
     )
     return {"message": "OTP verified"}

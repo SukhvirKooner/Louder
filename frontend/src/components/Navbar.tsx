@@ -31,6 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [dob, setDob] = useState('');
 
   const checkSubscription = () => {
     const userEmail = localStorage.getItem('userEmail');
@@ -68,7 +69,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
     setStatus('loading');
     setMessage('');
 
-    // If already logged in, call /submit-email
     if (localStorage.getItem('userEmail')) {
       try {
         const res = await fetch(`${API_URL}/submit-email`, {
@@ -104,7 +104,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
       const res = await fetch(`${API_URL}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, dob }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -130,7 +130,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
       const res = await fetch(`${API_URL}/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email, otp, dob }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -236,6 +236,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
                   required
                   className="block w-full rounded-md border-gray-700 bg-black text-white focus:border-white focus:ring-white"
                 />
+                <input
+                  type="date"
+                  value={dob}
+                  onChange={e => setDob(e.target.value)}
+                  placeholder="Date of Birth"
+                  required
+                  className="block w-full rounded-md border-gray-700 bg-black text-white focus:border-white focus:ring-white"
+                />
                 <div className="flex justify-center">
                   <button
                     type="submit"
@@ -256,6 +264,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSearchChange, showEmailModal, onShowE
                   value={otp}
                   onChange={e => setOtp(e.target.value)}
                   placeholder="Enter OTP"
+                  required
+                  className="block w-full rounded-md border-gray-700 bg-black text-white focus:border-white focus:ring-white"
+                />
+                <input
+                  type="date"
+                  value={dob}
+                  onChange={e => setDob(e.target.value)}
+                  placeholder="Date of Birth"
                   required
                   className="block w-full rounded-md border-gray-700 bg-black text-white focus:border-white focus:ring-white"
                 />

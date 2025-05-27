@@ -14,7 +14,7 @@ class EventScraper:
         self.sources = [
             "https://www.eventbrite.com/d/australia--sydney/all-events/"
         ]
-
+        
     async def scrape_events(self) -> List[Event]:
         """
         Scrape all pages from each source until there are no more event cards.

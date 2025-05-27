@@ -71,30 +71,27 @@ class Database:
 
     # --- OTP & Verification Methods ---
 
-    async def create_otp(self, email: str, otp: str):
+    async def create_otp(self, email: str, otp: str, dob: str):
         await self.otps_collection.insert_one({
             "email": email,
             "otp": otp,
+            "dob": dob,
             "created_at": datetime.utcnow()
         })
 
-    async def verify_otp(self, email: str, otp: str) -> bool:
+    async def verify_otp(self, email: str, otp: str, dob: str = None) -> bool:
         record = await self.otps_collection.find_one(
             {"email": email}, sort=[("created_at", -1)]
         )
         if not record:
             return False
-
-        # TTL index ensures old docs are gone; double-check in code too:
         if (datetime.utcnow() - record["created_at"]).total_seconds() > 300:
             return False
-
         if record["otp"] != otp:
             return False
-
         await self.verified_emails_collection.update_one(
             {"email": email},
-            {"$set": {"verified": True, "verified_at": datetime.utcnow()}},
+            {"$set": {"verified": True, "verified_at": datetime.utcnow(), "dob": dob or record.get("dob")}},
             upsert=True
         )
         return True
